@@ -51,12 +51,13 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id) {
-        if (!this.taskRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task não encontrada com o ID fornecido.");
+    public ResponseEntity update(@RequestBody TaskModel taskModel, @PathVariable UUID id, HttpServletRequest request) {
+        var task = this.taskRepository.findById(id).orElse(null);
+        if (task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Task não encontrada com o ID fornecido.");
         }
 
-        var task = this.taskRepository.findById(id).orElse(null);
         var idUser = request.getAttribute("idUser");
 
         if (!task.getIdUser().equals(idUser)) {
