@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,15 +47,38 @@ public class TaskController {
                     .body("A data inicio deve ser menor que data de término!");
         }
         var task = this.taskRepository.save(taskModel);
-        return ResponseEntity.status(HttpStatus.OK).body(task);
+        return ResponseEntity.status(HttpStatus.CREATED).body(task);
     }
 
     @PutMapping("/{id}")
-    public void update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id) {
+    public ResponseEntity update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id) {
+        if (!this.taskRepository.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task não encontrada com o ID fornecido.");
+        }
 
         var task = this.taskRepository.findById(id).orElse(null);
-        Utils.copyNomNullProperties(taskModel, task);
+        var idUser = request.getAttribute("idUser");
 
-        this.taskRepository.save(task);
+        if (!task.getIdUser().equals(idUser)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("O usuário não tem permissão para alterar essa task.");
+        }
+
+        Utils.copyNomNullProperties(taskModel, task);
+        var taskUpdated = this.taskRepository.save(task);
+        return ResponseEntity.status(HttpStatus.OK).body(taskUpdated);
+
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity delete(HttpServletRequest request, @PathVariable UUID id) {
+
+        if (!this.taskRepository.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task não encontrada com o ID fornecido.");
+        }
+        var task = this.taskRepository.findById(id).orElse(null);
+
+        this.taskRepository.delete(task);
+        return ResponseEntity.status(HttpStatus.OK).body("Task apagada com sucesso");
     }
 }
